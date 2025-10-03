@@ -9,6 +9,6 @@ import { ProductSize, ProductSizeSchema } from './schemas/product-size.schema';
       { name: ProductSize.name, schema: ProductSizeSchema },
     ]),
   ],
-exports: [MongooseModule],
+    exports: [MongooseModule],
 })
 export class ProductSizeModule {}

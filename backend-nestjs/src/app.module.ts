@@ -1,7 +1,17 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CatsModule } from './cats/cats.module';
+import { ProductModule } from './modules/product/product.module';
+import { CategoryModule } from './modules/category/category.module';
+import { CoinModule } from './modules/coin/coin.module';
+import { CouponModule } from './modules/coupon/coupon.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
+import { ImageFeedbackModule } from './modules/imageFeedback/image-feedback.module';
+import { ImageProductModule } from './modules/imageProduct/image-product.module';
+import { OrderItemModule } from './modules/orderItem/orderItem.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { ProductSizeModule } from './modules/productSize/product-size.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -13,7 +23,17 @@ import { CatsModule } from './cats/cats.module';
         uri: config.get<string>('MONGO_URI'),
       }),
     }),
-    CatsModule,
+    UserModule,
+    ProductModule,
+    CategoryModule,
+    CoinModule,
+    CouponModule,
+    FeedbackModule,
+    ImageFeedbackModule,
+    ImageProductModule,
+    OrderItemModule,
+    PaymentModule,
+    ProductSizeModule,
   ],
 })
 export class AppModule {}
