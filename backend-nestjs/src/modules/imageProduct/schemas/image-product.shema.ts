@@ -23,4 +23,3 @@ ImageProductSchema.set('toJSON', {
     delete ret._id;
   },
 });
-

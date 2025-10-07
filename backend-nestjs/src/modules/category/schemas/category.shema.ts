@@ -3,16 +3,16 @@ import { Document, Types } from 'mongoose';
 
 export type CategoryDocument = Category & Document; //Dùng trong Service/Repository để chỉ rõ kiểu trả về khi query.
 
-@Schema({ timestamps: true })  //Tự động thêm 2 field createdAt và updatedAt.
+@Schema({ timestamps: true }) //Tự động thêm 2 field createdAt và updatedAt.
 export class Category {
-  @Prop({ required: true })  // Bắt buộc phải có tên danh mục (categoryName)
+  @Prop({ required: true }) // Bắt buộc phải có tên danh mục (categoryName)
   categoryName: string;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }] })   // tham chiếu (ref) đến bảng (collection) Product
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }] }) // tham chiếu (ref) đến bảng (collection) Product
   listProduct: Types.ObjectId[];
 }
 
-export const CategorySchema = SchemaFactory.createForClass(Category);  // Biến class Category thành Mongoose Schema.
+export const CategorySchema = SchemaFactory.createForClass(Category); // Biến class Category thành Mongoose Schema.
 
 // Virtual id
 CategorySchema.virtual('id').get(function (this: any) {
