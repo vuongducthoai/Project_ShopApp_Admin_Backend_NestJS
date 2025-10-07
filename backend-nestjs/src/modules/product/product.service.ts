@@ -7,7 +7,7 @@ import { Product } from './schemas/product.schema';
 export class ProductService {
   constructor(@InjectModel(Product.name) private productModel: Model<Product>) {}
 
-  async findAll(): Promise<Product[]> {
+  async findAll(): Promise<Product[]> { 
     return this.productModel.find().populate('category').exec(); // populate để lấy dữ liệu category
   }
 }
