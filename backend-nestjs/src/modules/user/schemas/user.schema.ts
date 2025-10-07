@@ -44,7 +44,6 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-
 UserSchema.virtual('id').get(function (this: any) {
   return this._id.toString();
 });

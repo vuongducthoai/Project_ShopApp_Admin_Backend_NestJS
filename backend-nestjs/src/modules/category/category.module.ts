@@ -9,5 +9,6 @@ import { Category, CategorySchema } from './schemas/category.shema';
   controllers: [CategoryController],
   providers: [CategoryService],
   exports: [CategoryService],
+
 })
 export class CategoryModule {}

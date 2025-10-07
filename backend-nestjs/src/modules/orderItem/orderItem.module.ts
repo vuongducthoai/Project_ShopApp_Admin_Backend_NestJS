@@ -4,7 +4,9 @@ import { OrderItem, OrderItemSchema } from './schemas/order-item.shema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: OrderItem.name, schema: OrderItemSchema }]),
+    MongooseModule.forFeature([
+      { name: OrderItem.name, schema: OrderItemSchema },
+    ]),
   ],
   exports: [MongooseModule],
 })

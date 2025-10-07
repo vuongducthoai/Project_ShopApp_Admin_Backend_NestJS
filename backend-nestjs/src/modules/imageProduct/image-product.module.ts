@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ImageProduct, ImageProductSchema } from './schemas/image-product.shema';
+import {
+  ImageProduct,
+  ImageProductSchema,
+} from './schemas/image-product.shema';
 
 @Module({
   imports: [

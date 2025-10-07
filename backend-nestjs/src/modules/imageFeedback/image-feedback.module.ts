@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ImageFeedback, ImageFeedbackSchema } from './schemas/image-feedback.shema';
+import {
+  ImageFeedback,
+  ImageFeedbackSchema,
+} from './schemas/image-feedback.shema';
 
 @Module({
   imports: [
