@@ -9,7 +9,7 @@ export class ProductService {
     @InjectModel(Product.name) private productModel: Model<Product>,
   ) {}
 
-  async findAll(): Promise<Product[]> {
+  async findAll(): Promise<Product[]> { 
     return this.productModel.find().populate('category').exec(); // populate để lấy dữ liệu category
   }
 }
