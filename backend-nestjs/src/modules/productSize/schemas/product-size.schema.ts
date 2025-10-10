@@ -1,20 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { Product } from 'src/modules/product/schemas/product.schema'
-import {Size} from '../enums/size.enum'
+import { Product } from 'src/modules/product/schemas/product.schema';
+import { Size } from '../enums/size.enum';
 
 export type ProductSizeDocument = ProductSize & Document;
 
-@Schema({timestamps: true})
+@Schema({ timestamps: true })
 export class ProductSize {
-    @Prop({type: Types.ObjectId, ref: Product.name, required: true})
-    product: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: Product.name, required: true })
+  product: Types.ObjectId;
 
-    @Prop({ type: String, enum: Object.values(Size), required: true })
-    size: Size;
+  @Prop({ type: String, enum: Object.values(Size), required: true })
+  size: Size;
 
-    @Prop({ type: Number, required: true, min: 0 })
-     quantity: number;
+  @Prop({ type: Number, required: true, min: 0 })
+  quantity: number;
 }
 
 // Create schema from class
