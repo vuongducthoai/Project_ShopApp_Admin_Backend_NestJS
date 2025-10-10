@@ -1,18 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type CategoryDocument = Category & Document; //Dùng trong Service/Repository để chỉ rõ kiểu trả về khi query.
+export type CategoryDocument = Category & Document; 
 
-@Schema({ timestamps: true }) //Tự động thêm 2 field createdAt và updatedAt.
+@Schema({ timestamps: true }) 
 export class Category {
-  @Prop({ required: true }) // Bắt buộc phải có tên danh mục (categoryName)
+  @Prop({ required: true }) 
   categoryName: string;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }] }) // tham chiếu (ref) đến bảng (collection) Product
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }] }) 
   listProduct: Types.ObjectId[];
+  @Prop({ type: Boolean, default: true }) 
+  isActive: boolean;
 }
 
-export const CategorySchema = SchemaFactory.createForClass(Category); // Biến class Category thành Mongoose Schema.
+export const CategorySchema = SchemaFactory.createForClass(Category); 
 
 // Virtual id
 CategorySchema.virtual('id').get(function (this: any) {

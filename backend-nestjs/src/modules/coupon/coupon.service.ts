@@ -3,12 +3,14 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { Coupon } from "./schemas/coupon.schema";
 import { CreateCouponDto } from "./dto/create-coupon.dto";
-
+import { NotificationGateway } from '../notification/notification.gateway';
+import axios from 'axios';
 @Injectable()
-export class CouponService{
+export class CouponService {
     constructor(
-        @InjectModel(Coupon.name) private couponModel: Model<Coupon>
-    ) {}
+        @InjectModel(Coupon.name) private couponModel: Model<Coupon>,
+        private readonly notificationGateway: NotificationGateway,
+    ) { }
 
     //Tạo mới coupon
     async createCoupon(createCouponDto: CreateCouponDto): Promise<Coupon> {
@@ -26,20 +28,38 @@ export class CouponService{
         }
 
         const coupon = new this.couponModel(createCouponDto);
-        return coupon.save();
+        const savedCoupon = await coupon.save();
+        this.notificationGateway.sendNotification({
+            type: 'NEW_COUPON',
+            title: 'Voucher mới!',
+            message: `Shop vừa thêm mã giảm giá: ${savedCoupon.discountValue}`,
+            data: savedCoupon,
+        })
+        
+        try {
+            await axios.post('http://localhost:8088/api/notifications/broadcast', {
+                title: '🎉 Mã giảm giá mới!',
+                message: `Đã có mã giảm giá mới: ${coupon.code}`,
+                type: 'coupon',
+            });
+            console.log('✅ Đã gửi thông báo sang Express backend');
+        } catch (err) {
+            console.error('❌ Lỗi gửi thông báo sang Express backend:', err.message);
+        }
+        return savedCoupon
     }
 
     async updateCoupon(id: string, updateCouponDto: CreateCouponDto): Promise<Coupon> {
         const coupon = await this.couponModel.findById(id);
         if (!coupon) {
-        throw new NotFoundException('Không tìm thấy mã khuyến mại');
+            throw new NotFoundException('Không tìm thấy mã khuyến mại');
         }
 
         const { startDate, endDate } = updateCouponDto;
 
         // Nếu có cập nhật ngày thì kiểm tra hợp lệ
         if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
-        throw new BadRequestException('Ngày bắt đầu phải nhỏ hơn ngày kết thúc');
+            throw new BadRequestException('Ngày bắt đầu phải nhỏ hơn ngày kết thúc');
         }
 
         Object.assign(coupon, updateCouponDto);
@@ -48,13 +68,13 @@ export class CouponService{
 
 
     // Xóa mềm
-    async softDeleteCoupon (id: string) : Promise<Coupon>{
+    async softDeleteCoupon(id: string): Promise<Coupon> {
         const coupon = await this.couponModel.findByIdAndUpdate(
             id,
-            {$set: {isActive: false}},
-            {new: true}
+            { $set: { isActive: false } },
+            { new: true }
         );
-        if (!coupon){
+        if (!coupon) {
             throw new NotFoundException('Không tìm thấy mã khuyến mại');
         }
         return coupon;
@@ -68,7 +88,7 @@ export class CouponService{
         maxDiscountValue?: string;
         page?: string;
         limit?: string;
-        }): Promise<{ data: Coupon[]; total: number; page: number; limit: number }> {
+    }): Promise<{ data: Coupon[]; total: number; page: number; limit: number }> {
         const {
             isActive,
             startDate,

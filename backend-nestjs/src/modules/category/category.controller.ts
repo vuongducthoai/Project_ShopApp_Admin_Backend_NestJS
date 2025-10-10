@@ -13,7 +13,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Controller('categories')
 export class CategoryController {
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(private readonly categoryService: CategoryService) { }
 
   @Post()
   create(@Body() createCategoryDto: CreateCategoryDto) {
@@ -38,5 +38,10 @@ export class CategoryController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.categoryService.remove(id);
+  }
+
+  @Patch(':id/state')
+  changeState(@Param('id') id: string) {
+    return this.categoryService.changeTheState(id);
   }
 }
