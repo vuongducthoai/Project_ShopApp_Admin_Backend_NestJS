@@ -80,6 +80,25 @@ export class CouponService {
         return coupon;
     }
 
+    //Thay đổi trạng thái của khuyến mãi
+    async toggleActiveStatus(id: string): Promise<Coupon | null> {
+        const coupon = await this.couponModel.findById(id);
+        if (!coupon) {
+            throw new NotFoundException('Không tìm thấy mã khuyến mại');
+        }
+
+        // toggle trạng thái isActive
+        const newStatus = !coupon.isActive;
+        const updatedCoupon = await this.couponModel.findByIdAndUpdate(
+            id,
+            { $set: { isActive: newStatus } },
+            { new: true } 
+        );
+
+        return updatedCoupon;
+    }
+
+
     async findAllCoupons(query: {
         isActive?: string;
         startDate?: string;
@@ -88,7 +107,7 @@ export class CouponService {
         maxDiscountValue?: string;
         page?: string;
         limit?: string;
-    }): Promise<{ data: Coupon[]; total: number; page: number; limit: number }> {
+        }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
         const {
             isActive,
             startDate,
@@ -102,7 +121,7 @@ export class CouponService {
         const filter: any = {};
 
         // Lọc theo trạng thái hoạt động
-        if (typeof isActive !== 'undefined') {
+        if (typeof isActive !== 'undefined' && isActive !== '') {
             filter.isActive = isActive === 'true';
         }
 
@@ -115,7 +134,7 @@ export class CouponService {
 
         // Tìm kiếm code (fuzzy search)
         if (code) {
-            filter.code = { $regex: code, $options: 'i' }; // không phân biệt hoa thường
+            filter.code = { $regex: code, $options: 'i' };
         }
 
         // Lọc discountValue ≤ maxDiscountValue
@@ -128,11 +147,30 @@ export class CouponService {
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
 
-        const [data, total] = await Promise.all([
-            this.couponModel.find(filter).skip(skip).limit(limitNum).exec(),
+        // Lấy dữ liệu và tổng số bản ghi song song
+        const [coupons, total] = await Promise.all([
+            this.couponModel
+            .find(filter)
+            .skip(skip)
+            .limit(limitNum)
+            .sort({ createdAt: -1 })
+            .exec(),
             this.couponModel.countDocuments(filter),
         ]);
 
+        // Map lại dữ liệu để trả về có `id` thay vì `_id`
+        const data = coupons.map((coupon) => ({
+            id: coupon._id.toString(),
+            code: coupon.code,
+            discountValue: coupon.discountValue,
+            maxDiscount: coupon.maxDiscount,
+            startDate: coupon.startDate,
+            endDate: coupon.endDate,
+            isActive: coupon.isActive,
+            usedCount: coupon.usedCount,
+        }));
+
         return { data, total, page: pageNum, limit: limitNum };
     }
+
 }
