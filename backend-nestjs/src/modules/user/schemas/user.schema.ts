@@ -29,6 +29,9 @@ export class User {
   @Prop()
   image?: string;
 
+  @Prop()
+  status: boolean; 
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'AddressDelivery' }] })
   AddressDelivery?: Types.ObjectId[];
 
