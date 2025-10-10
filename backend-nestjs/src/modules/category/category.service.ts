@@ -9,7 +9,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoryService {
   constructor(
     @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
-  ) {}
+  ) { }
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     const newCategory = new this.categoryModel(createCategoryDto);
@@ -27,6 +27,7 @@ export class CategoryService {
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
+
     const updated = await this.categoryModel.findByIdAndUpdate(
       id,
       { $set: updateCategoryDto },
@@ -40,5 +41,13 @@ export class CategoryService {
     const result = await this.categoryModel.findByIdAndDelete(id);
     if (!result) throw new NotFoundException(`Category with id ${id} not found`);
     return { message: 'Category deleted successfully' };
+  }
+
+
+  async changeTheState(id: string): Promise<Category> {
+    const category = await this.categoryModel.findById(id);
+    if (!category) throw new NotFoundException('Category not found')
+    category.isActive = !category.isActive;
+    return await category.save();
   }
 }
