@@ -13,6 +13,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { ProductSizeModule } from './modules/productSize/product-size.module';
 import { UserModule } from './modules/user/user.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { StatisticModule } from './modules/statistic/statistic.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -34,7 +35,8 @@ import { NotificationModule } from './modules/notification/notification.module';
     OrderItemModule,
     PaymentModule,
     ProductSizeModule,
-    NotificationModule
+    NotificationModule,
+    StatisticModule
   ],
 })
 export class AppModule {}
