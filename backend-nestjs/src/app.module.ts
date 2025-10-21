@@ -12,6 +12,7 @@ import { OrderItemModule } from './modules/orderItem/orderItem.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProductSizeModule } from './modules/productSize/product-size.module';
 import { UserModule } from './modules/user/user.module';
+import { UploadImageModule } from './modules/uploadImage/uploadImage.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { UserModule } from './modules/user/user.module';
     OrderItemModule,
     PaymentModule,
     ProductSizeModule,
+    UploadImageModule,
   ],
 })
 export class AppModule {}

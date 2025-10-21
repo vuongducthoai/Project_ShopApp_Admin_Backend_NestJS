@@ -3,10 +3,10 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class ImageProduct extends Document {
-  @Prop({ type: String, required: true })
+  @Prop({ type: String })
   imageProduct: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Product' })
   product: Types.ObjectId;
 }
 

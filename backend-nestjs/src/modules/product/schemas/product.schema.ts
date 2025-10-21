@@ -13,8 +13,11 @@ export class Product{
     @Prop()
     productNameNormalized?: string;
 
-    @Prop([{type: Types.ObjectId, ref: 'ImageProduct'}])
+    @Prop({
+      type: [{ type: Types.ObjectId, ref: 'ImageProduct' }],
+    })
     listImage?: Types.ObjectId[];
+
 
     @Prop()
     description?: string;
@@ -22,8 +25,8 @@ export class Product{
     @Prop()
     descriptionNormalized?:string;
 
-    @Prop({required: true})
-    quantity: number;
+    // @Prop({required: true})
+    // quantity: number;
 
     @Prop({required: true})
     price: number;
@@ -40,9 +43,12 @@ export class Product{
    @Prop({type: Date, default: Date.now})
    updateDate?: Date;
 
-   @Prop([{type: Types.ObjectId, ref: 'ProductSize'}])
-   productSize?: Types.ObjectId[];
+    @Prop({
+      type: [{ type: Types.ObjectId, ref: 'ProductSize' }],
+    })
+    productSizes: Types.ObjectId[];   // <-- đổi tên thành productSizes
 }
+
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
 

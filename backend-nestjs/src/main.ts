@@ -3,7 +3,18 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // ✅ Bật CORS cho phép frontend (Next.js) truy cập API
+  app.enableCors({
+    origin: ['http://localhost:4000'], // domain của Next.js
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
+  });
+
+  // ✅ Đặt prefix cho tất cả route
   app.setGlobalPrefix('api');
-  await app.listen(process.env.PORT ?? 3000);
+
+  // ✅ Lắng nghe port 9090 (đúng với URL bạn đang gọi)
+  await app.listen(9090);
 }
 bootstrap();
