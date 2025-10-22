@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -5,10 +6,12 @@ import { Coupon } from "./schemas/coupon.schema";
 import { CreateCouponDto } from "./dto/create-coupon.dto";
 import { NotificationGateway } from '../notification/notification.gateway';
 import axios from 'axios';
+import { Order } from '../order/schemas/order.shema';
 @Injectable()
 export class CouponService {
     constructor(
         @InjectModel(Coupon.name) private couponModel: Model<Coupon>,
+        @InjectModel(Order.name) private orderModel: Model<Order>,
         private readonly notificationGateway: NotificationGateway,
     ) { }
 
@@ -55,11 +58,28 @@ export class CouponService {
             throw new NotFoundException('Không tìm thấy mã khuyến mại');
         }
 
-        const { startDate, endDate } = updateCouponDto;
+        const usedCoupon = await this.orderModel.findOne({coupon: new Types.ObjectId(id)});
+        if (usedCoupon){
+            throw new BadRequestException('Mã khuyến mãi đã được sử dụng không thể chỉnh sửa');
+        }
+
+        const { code, startDate, endDate } = updateCouponDto;
 
         // Nếu có cập nhật ngày thì kiểm tra hợp lệ
         if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
             throw new BadRequestException('Ngày bắt đầu phải nhỏ hơn ngày kết thúc');
+        }
+
+
+        // Kiểm tra mã code đã tồn tại không (trừ mã code hiện tại)
+        if (code){
+            const existingCode = await this.couponModel.findOne({
+                code,
+                _id: {$ne: id} // Khác coupon hiện tại
+            });
+            if (existingCode) {
+                throw new BadRequestException('Mã khuyến mãi đã tồn tại');
+            }
         }
 
         Object.assign(coupon, updateCouponDto);
