@@ -12,8 +12,9 @@ export class Product {
   @Prop()
   productNameNormalized?: string;
 
-  @Prop([{ type: Types.ObjectId, ref: 'ImageProduct' }])
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'ImageProduct' }] })
   listImage?: Types.ObjectId[];
+
 
   @Prop()
   description?: string;

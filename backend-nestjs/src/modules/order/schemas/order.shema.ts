@@ -19,9 +19,6 @@ export class Order extends Document {
   @Prop({ type: Date, default: Date.now })
   orderDate: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'Payment' })
-  payment: Types.ObjectId;
-
   @Prop({ type: Types.ObjectId, ref: 'AddressDelivery', required: true })
   addressDelivery: Types.ObjectId;
 
