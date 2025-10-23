@@ -17,6 +17,7 @@ import { PaymentMethod } from "../payment/enums/payment-method.enum";
 import { StatusFlow } from "./enums/order-status-flow";
 import {Coin, CoinDocument} from '../coin/schemas/coin.shema';
 import {CoinUsage, CoinUsageDocument} from '../coinUsage/schemas/coin-usage.schema';
+import { UpdateOrderStatusDto } from "./dto/update-order-status.dto";
 
 
 interface FindAllOptions {
@@ -350,28 +351,33 @@ export class OrderService {
 
 
 
-  async updateStatus(id: string, newStatus: OrderStatus): Promise<Order> {
+ async updateStatus(id: string, payload: UpdateOrderStatusDto): Promise<Order> {
+    const { status: newStatus, cancellationReason } = payload;
+    this.logger.debug(`Received payload for order ${id}: ${JSON.stringify(payload)}`);
+
+    // 1. Tìm đơn hàng GỐC để kiểm tra trạng thái và lấy thông tin
     const order = await this.orderModel.findById(id).populate('orderItems').exec();
     if (!order) {
       throw new NotFoundException(`Order with ID "${id}" not found`);
     }
 
+    // 2. Tìm payment tương ứng
     const payment = await this.paymentModel.findOne({ order: order._id }).exec();
 
+    // 3. Kiểm tra logic chuyển trạng thái
     const currentStatus = order.orderStatus;
     const allowedNextStatuses = StatusFlow[currentStatus];
     if (!allowedNextStatuses || !allowedNextStatuses.includes(newStatus)) {
       throw new BadRequestException(`Invalid status transition from ${currentStatus} to ${newStatus}`);
     }
 
-    // --- XỬ LÝ CÁC LOGIC NGHIỆP VỤ ---
+    // --- XỬ LÝ CÁC LOGIC NGHIỆP VỤ (SIDE EFFECTS) ---
+    // (Thực hiện các thay đổi phụ thuộc vào newStatus TRƯỚC khi cập nhật order chính)
 
-    // 1. LOGIC KHI ĐƠN HÀNG HOÀN THÀNH (COMPLETED)
+    // 4. LOGIC KHI ĐƠN HÀNG HOÀN THÀNH (COMPLETED)
     if (newStatus === OrderStatus.COMPLETED) {
-      // ... (logic cập nhật payment COD và trừ kho) ...
       if (payment && payment.paymentMethod === PaymentMethod.COD && !payment.status) {
-        payment.status = true;
-        await payment.save();
+        await this.paymentModel.findByIdAndUpdate(payment._id, { status: true });
       }
       for (const item of order.orderItems as any[]) {
         await this.productModel.findByIdAndUpdate(item.product, { $inc: { quantity: -item.quantity } });
@@ -382,9 +388,9 @@ export class OrderService {
       }
     }
 
-    // 2. LOGIC KHI ĐƠN HÀNG BỊ HỦY (CANCELLED)
+    // 5. LOGIC KHI ĐƠN HÀNG BỊ HỦY (CANCELLED)
     if (newStatus === OrderStatus.CANCELLED) {
-      // 2a. Hoàn trả lại số lượng sản phẩm vào kho
+      // Hoàn kho
       for (const item of order.orderItems as any[]) {
         await this.productModel.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
         await this.productSizeModel.findOneAndUpdate(
@@ -392,41 +398,45 @@ export class OrderService {
           { $inc: { quantity: item.quantity } },
         );
       }
-
-      // 2b. Hoàn lại Coin đã sử dụng (luôn thực hiện nếu có dùng coin)
+      // Hoàn coin (luôn thực hiện nếu có)
       const coinUsage = await this.coinUsageModel.findOne({ order: order._id }).exec();
       if (coinUsage && coinUsage.coinsUsed > 0) {
         await this.coinModel.findOneAndUpdate(
-          { User: order.user }, 
+          { User: order.user },
           { $inc: { value: coinUsage.coinsUsed } }
         );
-        this.logger.log(`Refunded ${coinUsage.coinsUsed} coins to user ${order.user} for cancelled order ${order._id}`);
+        this.logger.log(`Refunded ${coinUsage.coinsUsed} coins to user ${order.user}`);
       }
-
-      // 2c. Xử lý trạng thái Payment và hoàn tiền nếu đơn hàng đã được thanh toán
-        if (payment && payment.status === true) { // Chỉ xử lý hoàn tiền khi status là true
-          const amountToRefund = payment.amount;
-          const coinsToRefund = Math.floor(amountToRefund / 1000); // 1000đ = 1 coin
-
-          if (coinsToRefund > 0) {
-            // 2. Cộng số coin hoàn lại vào ví của người dùng
-            await this.coinModel.findOneAndUpdate(
-              { User: order.user }, // Tìm ví coin của user đặt hàng
-              { $inc: { value: coinsToRefund } }, // Cộng thêm coin
-              { upsert: true } // Nếu user chưa có ví coin, tạo mới (tùy chọn)
-            );
-            this.logger.log(`[REFUND] Refunded ${coinsToRefund} coins (from paid amount ${amountToRefund} VND) to user ${order.user} for cancelled order ${order._id}`);
-          } else {
-            this.logger.warn(`[REFUND] Calculated coins to refund is zero or negative for order ${order._id}. Amount: ${amountToRefund}`);
-          }
-
-          // 3. Cập nhật trạng thái payment về `false` (đã xử lý hủy/hoàn)
-          payment.status = false;
-          await payment.save();
+      // Cập nhật payment (nếu đã thanh toán)
+      if (payment && payment.status === true) {
+        await this.paymentModel.findByIdAndUpdate(payment._id, { status: false });
+        if (payment.paymentMethod !== PaymentMethod.COD) {
+          this.logger.log(`[REFUND] Initiating refund for non-COD payment ID: ${payment._id}`);
+          // TODO: Gọi API hoàn tiền bên thứ ba
         }
       }
+    }
 
-    order.orderStatus = newStatus;
-    return order.save();
+    // --- 6. CẬP NHẬT TRẠNG THÁI ORDER VÀ LÝ DO HỦY ---
+    const updatePayload: any = { orderStatus: newStatus };
+    if (newStatus === OrderStatus.CANCELLED && cancellationReason) {
+      updatePayload.cancellationReason = cancellationReason; // Gộp lý do vào payload
+    }
+
+    this.logger.debug(`Updating order ${id} with: ${JSON.stringify(updatePayload)}`);
+
+    const updatedOrder = await this.orderModel.findByIdAndUpdate(
+      id,
+      updatePayload,
+      { new: true } // Trả về document sau khi cập nhật
+    ).exec();
+
+    if (!updatedOrder) {
+      // Lỗi này không nên xảy ra nếu findById ban đầu thành công
+      throw new Error(`Failed to update order status for ID "${id}"`);
+    }
+
+    this.logger.debug(`Order ${id} updated successfully.`);
+    return updatedOrder;
   }
 }
