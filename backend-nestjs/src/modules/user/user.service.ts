@@ -6,7 +6,6 @@ import { FilterQuery, Model } from 'mongoose';
 import { User, UserDocument  } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { stat } from 'fs';
 import * as Papa from 'papaparse'
 
 interface PaginationOptions {

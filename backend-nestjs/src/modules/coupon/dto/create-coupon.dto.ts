@@ -2,23 +2,23 @@ import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString, IsBoolean, Is
 
 export class CreateCouponDto {
   @IsString()
-  @IsNotEmpty({ message: 'Mã giảm giá (code) không được để trống' })
+  @IsNotEmpty({ message: 'Code is required' })
   code: string;
 
-  @IsNumber({}, { message: 'Giá trị giảm phải là số' })
-  @IsNotEmpty({ message: 'Giá trị giảm (discountValue) là bắt buộc' })
+  @IsNumber({}, { message: 'Discount value must be a number' })
+  @IsNotEmpty({ message: 'Discount value is required' })
   discountValue: number;
 
   @IsOptional()
-  @IsNumber({}, { message: 'Giảm tối đa phải là số' })
+  @IsNumber({}, { message: 'Maximum discount must be a number' })
   maxDiscount?: number;
 
-  @IsDateString({}, { message: 'Ngày bắt đầu không hợp lệ' })
-  @IsNotEmpty({ message: 'Vui lòng nhập ngày bắt đầu' })
+  @IsDateString({}, { message: 'Start date must be a valid date string' })
+  @IsNotEmpty({ message: 'Start date is required' })
   startDate: Date;
 
-  @IsDateString({}, { message: 'Ngày kết thúc không hợp lệ' })
-  @IsNotEmpty({ message: 'Vui lòng nhập ngày kết thúc' })
+  @IsDateString({}, { message: 'End date must be a valid date string' })
+  @IsNotEmpty({ message: 'End date is required' })
   endDate: Date;
 
   @IsOptional()
@@ -30,6 +30,6 @@ export class CreateCouponDto {
   usedCount?: number;
 
   @IsOptional()
-  @IsMongoId({ message: 'order phải là ObjectId hợp lệ' })
+  @IsMongoId({ message: 'Order must be a valid ObjectId' })
   order?: string;
 }

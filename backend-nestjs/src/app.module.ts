@@ -13,6 +13,8 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { ProductSizeModule } from './modules/productSize/product-size.module';
 import { UserModule } from './modules/user/user.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { OrderModule } from './modules/order/order.module';
+import { CoinUsage } from './modules/coinUsage/schemas/coin-usage.schema';
 import { StatisticModule } from './modules/statistic/statistic.module';
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { StatisticModule } from './modules/statistic/statistic.module';
     ProductModule,
     CategoryModule,
     CoinModule,
+    OrderModule,
+    OrderItemModule,
     CouponModule,
     FeedbackModule,
     ImageFeedbackModule,
@@ -36,6 +40,7 @@ import { StatisticModule } from './modules/statistic/statistic.module';
     PaymentModule,
     ProductSizeModule,
     NotificationModule,
+    CoinUsage
     StatisticModule
   ],
 })
