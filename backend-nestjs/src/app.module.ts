@@ -40,7 +40,7 @@ import { StatisticModule } from './modules/statistic/statistic.module';
     PaymentModule,
     ProductSizeModule,
     NotificationModule,
-    CoinUsage
+    CoinUsage,
     StatisticModule
   ],
 })
