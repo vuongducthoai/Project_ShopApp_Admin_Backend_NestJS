@@ -13,6 +13,8 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { ProductSizeModule } from './modules/productSize/product-size.module';
 import { UserModule } from './modules/user/user.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { OrderModule } from './modules/order/order.module';
+import { CoinUsage } from './modules/coinUsage/schemas/coin-usage.schema';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -27,6 +29,8 @@ import { NotificationModule } from './modules/notification/notification.module';
     ProductModule,
     CategoryModule,
     CoinModule,
+    OrderModule,
+    OrderItemModule,
     CouponModule,
     FeedbackModule,
     ImageFeedbackModule,
@@ -34,7 +38,8 @@ import { NotificationModule } from './modules/notification/notification.module';
     OrderItemModule,
     PaymentModule,
     ProductSizeModule,
-    NotificationModule
+    NotificationModule,
+    CoinUsage
   ],
 })
 export class AppModule {}
