@@ -26,6 +26,9 @@ export class Order extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Coupon' })
   coupon: Types.ObjectId;
+
+  @Prop({ type: String, required: false }) 
+  cancellationReason?: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

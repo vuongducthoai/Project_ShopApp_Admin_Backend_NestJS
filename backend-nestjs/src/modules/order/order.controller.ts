@@ -43,6 +43,6 @@ export class OrderController {
     @Param('id') id: string,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
-    return this.orderService.updateStatus(id, updateOrderStatusDto.status);
+    return this.orderService.updateStatus(id, updateOrderStatusDto);
   }
 }
