@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -5,10 +6,12 @@ import { Coupon } from "./schemas/coupon.schema";
 import { CreateCouponDto } from "./dto/create-coupon.dto";
 import { NotificationGateway } from '../notification/notification.gateway';
 import axios from 'axios';
+import { Order } from '../order/schemas/order.shema';
 @Injectable()
 export class CouponService {
     constructor(
         @InjectModel(Coupon.name) private couponModel: Model<Coupon>,
+        @InjectModel(Order.name) private orderModel: Model<Order>,
         private readonly notificationGateway: NotificationGateway,
     ) { }
 
@@ -55,11 +58,28 @@ export class CouponService {
             throw new NotFoundException('Không tìm thấy mã khuyến mại');
         }
 
-        const { startDate, endDate } = updateCouponDto;
+        const usedCoupon = await this.orderModel.findOne({coupon: new Types.ObjectId(id)});
+        if (usedCoupon){
+            throw new BadRequestException('Mã khuyến mãi đã được sử dụng không thể chỉnh sửa');
+        }
+
+        const { code, startDate, endDate } = updateCouponDto;
 
         // Nếu có cập nhật ngày thì kiểm tra hợp lệ
         if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
             throw new BadRequestException('Ngày bắt đầu phải nhỏ hơn ngày kết thúc');
+        }
+
+
+        // Kiểm tra mã code đã tồn tại không (trừ mã code hiện tại)
+        if (code){
+            const existingCode = await this.couponModel.findOne({
+                code,
+                _id: {$ne: id} // Khác coupon hiện tại
+            });
+            if (existingCode) {
+                throw new BadRequestException('Mã khuyến mãi đã tồn tại');
+            }
         }
 
         Object.assign(coupon, updateCouponDto);
@@ -80,6 +100,25 @@ export class CouponService {
         return coupon;
     }
 
+    //Thay đổi trạng thái của khuyến mãi
+    async toggleActiveStatus(id: string): Promise<Coupon | null> {
+        const coupon = await this.couponModel.findById(id);
+        if (!coupon) {
+            throw new NotFoundException('Không tìm thấy mã khuyến mại');
+        }
+
+        // toggle trạng thái isActive
+        const newStatus = !coupon.isActive;
+        const updatedCoupon = await this.couponModel.findByIdAndUpdate(
+            id,
+            { $set: { isActive: newStatus } },
+            { new: true } 
+        );
+
+        return updatedCoupon;
+    }
+
+
     async findAllCoupons(query: {
         isActive?: string;
         startDate?: string;
@@ -88,7 +127,7 @@ export class CouponService {
         maxDiscountValue?: string;
         page?: string;
         limit?: string;
-    }): Promise<{ data: Coupon[]; total: number; page: number; limit: number }> {
+        }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
         const {
             isActive,
             startDate,
@@ -102,7 +141,7 @@ export class CouponService {
         const filter: any = {};
 
         // Lọc theo trạng thái hoạt động
-        if (typeof isActive !== 'undefined') {
+        if (typeof isActive !== 'undefined' && isActive !== '') {
             filter.isActive = isActive === 'true';
         }
 
@@ -115,7 +154,7 @@ export class CouponService {
 
         // Tìm kiếm code (fuzzy search)
         if (code) {
-            filter.code = { $regex: code, $options: 'i' }; // không phân biệt hoa thường
+            filter.code = { $regex: code, $options: 'i' };
         }
 
         // Lọc discountValue ≤ maxDiscountValue
@@ -128,11 +167,30 @@ export class CouponService {
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
 
-        const [data, total] = await Promise.all([
-            this.couponModel.find(filter).skip(skip).limit(limitNum).exec(),
+        // Lấy dữ liệu và tổng số bản ghi song song
+        const [coupons, total] = await Promise.all([
+            this.couponModel
+            .find(filter)
+            .skip(skip)
+            .limit(limitNum)
+            .sort({ createdAt: -1 })
+            .exec(),
             this.couponModel.countDocuments(filter),
         ]);
 
+        // Map lại dữ liệu để trả về có `id` thay vì `_id`
+        const data = coupons.map((coupon) => ({
+            id: coupon._id.toString(),
+            code: coupon.code,
+            discountValue: coupon.discountValue,
+            maxDiscount: coupon.maxDiscount,
+            startDate: coupon.startDate,
+            endDate: coupon.endDate,
+            isActive: coupon.isActive,
+            usedCount: coupon.usedCount,
+        }));
+
         return { data, total, page: pageNum, limit: limitNum };
     }
+
 }

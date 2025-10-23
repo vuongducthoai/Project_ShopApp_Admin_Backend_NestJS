@@ -15,6 +15,7 @@ import { UserModule } from './modules/user/user.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { OrderModule } from './modules/order/order.module';
 import { CoinUsage } from './modules/coinUsage/schemas/coin-usage.schema';
+import { StatisticModule } from './modules/statistic/statistic.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -40,6 +41,7 @@ import { CoinUsage } from './modules/coinUsage/schemas/coin-usage.schema';
     ProductSizeModule,
     NotificationModule,
     CoinUsage
+    StatisticModule
   ],
 })
 export class AppModule {}

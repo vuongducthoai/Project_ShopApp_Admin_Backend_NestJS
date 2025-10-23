@@ -37,6 +37,11 @@ export class CouponController {
         return this.couponService.softDeleteCoupon(id);
     }
 
+    @Patch('toggle-status/:id')
+    async toggleStatus(@Param('id') id: string): Promise<Coupon | null> {
+        return this.couponService.toggleActiveStatus(id);
+    }
+
     @Get()
     async findAll(@Query() query: any) {
         return this.couponService.findAllCoupons(query);
