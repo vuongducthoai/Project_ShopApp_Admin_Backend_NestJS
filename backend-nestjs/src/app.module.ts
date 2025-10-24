@@ -12,6 +12,8 @@ import { OrderItemModule } from './modules/orderItem/orderItem.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProductSizeModule } from './modules/productSize/product-size.module';
 import { UserModule } from './modules/user/user.module';
+import { UploadImageModule } from './modules/uploadImage/uploadImage.module';
+
 import { NotificationModule } from './modules/notification/notification.module';
 import { OrderModule } from './modules/order/order.module';
 import { CoinUsage } from './modules/coinUsage/schemas/coin-usage.schema';
@@ -39,9 +41,11 @@ import { StatisticModule } from './modules/statistic/statistic.module';
     OrderItemModule,
     PaymentModule,
     ProductSizeModule,
+    UploadImageModule,
     NotificationModule,
     CoinUsage,
     StatisticModule
+
   ],
 })
 export class AppModule {}

@@ -1,48 +1,54 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { removeVietnameseAccents } from 'src/utils/textUtils';
 
 export type ProductDocument = Product & Document;
 
-@Schema({ timestamps: false })
-export class Product {
-  @Prop({ required: true })
-  productName: string;
-
-  @Prop()
-  productNameNormalized?: string;
-
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'ImageProduct' }] })
-  listImage?: Types.ObjectId[];
+@Schema({timestamps: false})
+export class Product{
+    @Prop({required: true})
+    productName: string;
 
 
-  @Prop()
-  description?: string;
+    @Prop()
+    productNameNormalized?: string;
 
-  @Prop()
-  descriptionNormalized?: string;
+    @Prop({
+      type: [{ type: Types.ObjectId, ref: 'ImageProduct' }],
+    })
+    listImage?: Types.ObjectId[];
 
-  @Prop({ required: true })
-  quantity: number;
 
-  @Prop({ required: true })
-  price: number;
+    @Prop()
+    description?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
-  category: Types.ObjectId;
+    @Prop()
+    descriptionNormalized?:string;
 
-  @Prop({ default: true })
-  status: boolean;
+    // @Prop({required: true})
+    // quantity: number;
 
-  @Prop({ type: Date, default: Date.now })
-  createDate?: Date;
+    @Prop({required: true})
+    price: number;
 
-  @Prop({ type: Date, default: Date.now })
-  updateDate?: Date;
+   @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
+   category: Types.ObjectId;
 
-  @Prop([{ type: Types.ObjectId, ref: 'ProductSize' }])
-  productSize?: Types.ObjectId[];
+   @Prop({default: true})
+   status: boolean;
+
+   @Prop({type: Date, default: Date.now})
+   createDate?: Date;
+
+   @Prop({type: Date, default: Date.now})
+   updateDate?: Date;
+
+    @Prop({
+      type: [{ type: Types.ObjectId, ref: 'ProductSize' }],
+    })
+    productSizes: Types.ObjectId[];   // <-- đổi tên thành productSizes
 }
+
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
 
@@ -62,25 +68,17 @@ ProductSchema.pre(['updateOne', 'findOneAndUpdate'], function (next) {
   const update = this.getUpdate() as any;
   if (update.$set) {
     if (update.$set.productName) {
-      update.$set.productNameNormalized = removeVietnameseAccents(
-        update.$set.productName,
-      );
+      update.$set.productNameNormalized = removeVietnameseAccents(update.$set.productName);
     }
     if (update.$set.description) {
-      update.$set.descriptionNormalized = removeVietnameseAccents(
-        update.$set.description,
-      );
+      update.$set.descriptionNormalized = removeVietnameseAccents(update.$set.description);
     }
   } else {
     if (update.productName) {
-      update.productNameNormalized = removeVietnameseAccents(
-        update.productName,
-      );
+      update.productNameNormalized = removeVietnameseAccents(update.productName);
     }
     if (update.description) {
-      update.descriptionNormalized = removeVietnameseAccents(
-        update.description,
-      );
+      update.descriptionNormalized = removeVietnameseAccents(update.description);
     }
   }
   next();
@@ -99,3 +97,5 @@ ProductSchema.set('toJSON', {
     delete ret.descriptionNormalized;
   },
 });
+
+

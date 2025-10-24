@@ -1,3 +1,4 @@
+
 import {
   Controller,
   Get,
@@ -6,6 +7,8 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
+  BadRequestException
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -19,7 +22,12 @@ export class CategoryController {
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoryService.create(createCategoryDto);
   }
-
+  //thu
+  @Get()
+  async getAlls(@Query('page') page: string = '1', @Query('limit') limit: string = '10') {
+    const categories = await this.categoryService.findAlls(Number(page), Number(limit));
+    return categories;
+  }
   @Get()
   findAll() {
     return this.categoryService.findAll();
