@@ -5,7 +5,9 @@ import { Feedback, FeedbackSchema } from './schemas/feedback.shema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Feedback.name, schema: FeedbackSchema }]),
+    MongooseModule.forFeature([
+      { name: Feedback.name, schema: FeedbackSchema },
+    ]),
   ],
   exports: [MongooseModule],
 })

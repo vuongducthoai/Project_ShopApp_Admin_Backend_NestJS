@@ -1,10 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { EnumRole } from '../enums/EnumRole';
+import * as bcrypt from 'bcrypt'
 export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
 export class User {
+  
   @Prop({ required: true })
   firstName: string;
 
@@ -29,6 +31,9 @@ export class User {
   @Prop()
   image?: string;
 
+  @Prop({default: true})
+  status: boolean; 
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'AddressDelivery' }] })
   AddressDelivery?: Types.ObjectId[];
 
@@ -43,6 +48,18 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+//Hook to hash pasword before save
+UserSchema.pre<UserDocument>('save', async function (next){
+  //Chi bam mat khau neu no duoc thay doi (hoac la user moi)
+  if(!this.isModified('password')){
+      return next;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
 
 UserSchema.virtual('id').get(function (this: any) {

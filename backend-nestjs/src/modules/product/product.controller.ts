@@ -127,9 +127,14 @@ export class ProductController {
 
 
 
+
   @Put(':id/status')
   async updateProductStatus(@Param('id') id: string, @Body() body: { status: boolean }) {
     const updatedProduct = await this.productService.updateProductStatus(id);
     return updatedProduct;
+
+  @Get('')
+  async getAllProducts(): Promise<Product[]> {
+    return this.productService.findAll();
   }
 }

@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { OrderStatus } from '../enums/order-status.enum';
+export type OrderDocument = Order & Document;
+
 @Schema({ timestamps: true })
 export class Order extends Document {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'OrderItem' }] })
@@ -19,14 +21,14 @@ export class Order extends Document {
   @Prop({ type: Date, default: Date.now })
   orderDate: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'Payment' })
-  payment: Types.ObjectId;
-
   @Prop({ type: Types.ObjectId, ref: 'AddressDelivery', required: true })
   addressDelivery: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Coupon' })
   coupon: Types.ObjectId;
+
+  @Prop({ type: String, required: false }) 
+  cancellationReason?: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

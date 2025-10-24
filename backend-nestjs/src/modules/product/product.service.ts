@@ -288,5 +288,10 @@ async create(dto: ProductRequestDTO, images: Express.Multer.File[]) {
       message: `Product status updated to ${product.status}`,
       product,
     };
+
+
+  async findAll(): Promise<Product[]> { 
+    return this.productModel.find().populate('category').exec(); // populate để lấy dữ liệu category
+
   }
 }

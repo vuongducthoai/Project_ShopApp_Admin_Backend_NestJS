@@ -1,7 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 
+
+import { Module,forwardRef } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './schemas/product.schema';
+import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
 

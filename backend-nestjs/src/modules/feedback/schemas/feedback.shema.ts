@@ -15,7 +15,7 @@ export class Feedback extends Document {
   @Prop({ type: Date, default: Date.now })
   date: Date;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'ImageFeedback' }] })   // tham chiếu (ref) đến bảng (collection) Product
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'ImageFeedback' }] }) // tham chiếu (ref) đến bảng (collection) Product
   listImageFeedback: Types.ObjectId[];
 }
 
