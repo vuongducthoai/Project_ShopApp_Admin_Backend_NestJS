@@ -32,14 +32,5 @@ export class CategoryService {
 
     return { categories, totalPages: Math.ceil(totalCategories / limit) };
   }
-    // ✅ Tạo mới category
-  async create(data: { categoryName: string }) {
-    const newCategory = new this.categoryModel(data);
-    return newCategory.save();
-  }
-  
-  // ✅ Update Category
-  async update(id: string, data: Partial<Category>) {
-    return this.categoryModel.findByIdAndUpdate(id, data, { new: true });
-  }
+
 }

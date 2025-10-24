@@ -123,7 +123,10 @@ export class ProductController {
     console.log("id: "+ id)
     return this.productService.update(id, dto, images);
   }
- // PUT endpoint to update the status
+ //PUT endpoint to update the status
+
+
+
   @Put(':id/status')
   async updateProductStatus(@Param('id') id: string, @Body() body: { status: boolean }) {
     const updatedProduct = await this.productService.updateProductStatus(id);
