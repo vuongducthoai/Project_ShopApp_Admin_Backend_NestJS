@@ -23,7 +23,7 @@ export class CategoryController {
     return this.categoryService.create(createCategoryDto);
   }
   //thu
-  @Get()
+  @Get("all")
   async getAlls(@Query('page') page: string = '1', @Query('limit') limit: string = '10') {
     const categories = await this.categoryService.findAlls(Number(page), Number(limit));
     return categories;

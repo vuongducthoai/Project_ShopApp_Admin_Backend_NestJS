@@ -17,7 +17,7 @@ export class CategoryService {
 
   // ✅ Lấy tất cả category (không phân trang)
 // ✅ Lấy tất cả category (chỉ trả về id và categoryName)
-    async findAll() {
+    async findAll1() {
     return this.categoryModel
         .find({}, 'categoryName',)  // chỉ chọn trường categoryName
         .sort({ createdAt: -1 })   // sắp xếp theo thời gian tạo (mới nhất trước)               // bỏ metadata Mongoose, trả object JS thường
@@ -38,9 +38,7 @@ export class CategoryService {
     return { categories, totalPages: Math.ceil(totalCategories / limit) };
   }
 
-=======
-    @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
-  ) { }
+
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     const newCategory = new this.categoryModel(createCategoryDto);

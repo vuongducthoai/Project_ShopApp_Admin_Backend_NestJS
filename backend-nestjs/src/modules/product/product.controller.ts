@@ -2,19 +2,19 @@ import { Controller, Get,Put, Post, Query, Body,Param, UploadedFiles, UseInterce
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ProductService } from './product.service';
 import { ProductRequestDTO } from './dto/requestDTO/productRequestDTO';
-
+import { Product } from './schemas/product.schema';
 @Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
   
-   @Get()
-  async getAllProducts(
+   @Get("/all")
+  async getAllProduct(
     @Query('page') page: string = '1', // mặc định page = 1
     @Query('limit') limit: string = '10', // mặc định limit = 10
     @Query('searchTerm') searchTerm: string = '', // Tìm kiếm theo từ khóa
     @Query('filterStatus') filterStatus: string = 'all', // Bộ lọc trạng thái
   ): Promise<any> {
-    return this.productService.findAll(
+    return this.productService.findAllPage(
       Number(page),
       Number(limit),
       searchTerm,
@@ -132,6 +132,7 @@ export class ProductController {
   async updateProductStatus(@Param('id') id: string, @Body() body: { status: boolean }) {
     const updatedProduct = await this.productService.updateProductStatus(id);
     return updatedProduct;
+  }
 
   @Get('')
   async getAllProducts(): Promise<Product[]> {
