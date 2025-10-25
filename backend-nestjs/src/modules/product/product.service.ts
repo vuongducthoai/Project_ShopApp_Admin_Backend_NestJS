@@ -114,7 +114,7 @@ product.listImage = (product.listImage || []).filter(
   return { message: 'Product updated successfully', product: populated };
 }
 
-async findAll(page: number = 1, limit: number = 10, searchTerm: string = '', filterStatus: string = 'all'): Promise<any> {
+async findAllPage(page: number = 1, limit: number = 10, searchTerm: string = '', filterStatus: string = 'all'): Promise<any> {
     const skip = (page - 1) * limit;
 
     // Tạo query để tìm kiếm và lọc
@@ -288,7 +288,7 @@ async create(dto: ProductRequestDTO, images: Express.Multer.File[]) {
       message: `Product status updated to ${product.status}`,
       product,
     };
-
+  }
 
   async findAll(): Promise<Product[]> { 
     return this.productModel.find().populate('category').exec(); // populate để lấy dữ liệu category

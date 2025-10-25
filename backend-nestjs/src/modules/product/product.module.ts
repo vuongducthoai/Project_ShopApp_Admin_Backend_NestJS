@@ -5,7 +5,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './schemas/product.schema';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
-import { ProductService } from './product.service';
 
 import { ImageProduct, ImageProductSchema } from '../imageProduct/schemas/image-product.shema';
 import { ProductSize, ProductSizeSchema } from '../productSize/schemas/product-size.schema';
