@@ -7,6 +7,7 @@ import { User, UserDocument  } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as Papa from 'papaparse'
+import { Coin, CoinDocument } from '../coin/schemas/coin.shema';
 
 interface PaginationOptions {
   page: number;
@@ -20,6 +21,7 @@ interface PaginationOptions {
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(Coin.name) private coinModel: Model<CoinDocument>,
   ) {}
 
   async findAll(options: PaginationOptions) {
@@ -94,7 +96,12 @@ export class UserService {
 
   async create(createUserDto: CreateUserDto) : Promise<User>{
     try{
+      console.log("cccccccccc", createUserDto);
       const newUser = new this.userModel(createUserDto);
+      
+      const coin = new this.coinModel({User: newUser._id,
+      value: 0,})
+      await coin.save();
       return await newUser.save();
     }catch(error){
       if(error.code === 11000){

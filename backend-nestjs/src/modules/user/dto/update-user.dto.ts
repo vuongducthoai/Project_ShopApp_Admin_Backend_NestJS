@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, IsEnum, IsBoolean } from "class-validator";
+import { IsString, IsOptional, MinLength, IsEnum, IsBoolean, IsNotEmpty } from "class-validator";
 import { EnumRole } from "../enums/EnumRole";
 
 export class UpdateUserDto {
@@ -13,6 +13,10 @@ export class UpdateUserDto {
     @IsOptional()
     @IsString()
     phoneNumber?: string;
+
+    @IsBoolean()
+    @IsNotEmpty()
+    gender: boolean;
 
     @IsOptional()
     @IsEnum(EnumRole)
