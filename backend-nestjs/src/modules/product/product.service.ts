@@ -141,7 +141,6 @@ async findAllPage(page: number = 1, limit: number = 10, searchTerm: string = '',
       const fuzzyResults = fuse.search(searchTerm);
       results = fuzzyResults.map((r) => r.item);
     }
-console.log("trang thai lo:  "+ filterStatus);
  // Lọc theo trạng thái
 if (filterStatus !== 'all') {
   results = results.filter((p) => {
