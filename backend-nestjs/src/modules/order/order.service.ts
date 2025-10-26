@@ -42,42 +42,21 @@ export class OrderService {
     @InjectModel(CoinUsage.name) private coinUsageModel: Model<CoinUsageDocument>,
   ) {}
 
-  async findAll(options: FindAllOptions) {
+ async findAll(options: FindAllOptions) {
   const { page, limit, search, orderStatus, paymentMethod, startDate, endDate } = options;
 
   // --- XÂY DỰNG AGGREGATION PIPELINE ---
 
-  // Pipeline ban đầu sẽ join tất cả các bảng và tính tổng tiền
+  // Pipeline ban đầu sẽ join tất cả các bảng
   const initialPipeline: PipelineStage[] = [
     // 1. Join với payments và addressdeliveries
-    { $lookup: { from: 'payments', localField: '_id', foreignField: 'order', as: 'payment' } },
+    { $lookup: { from: 'payments', localField: 'payment', foreignField: '_id', as: 'payment' } },
     { $unwind: { path: '$payment', preserveNullAndEmptyArrays: true } },
     { $lookup: { from: 'addressdeliveries', localField: 'addressDelivery', foreignField: '_id', as: 'addressDelivery' } },
     { $unwind: { path: '$addressDelivery', preserveNullAndEmptyArrays: true } },
-
-    // 2. MỚI: Join với orderitems để tính tổng
-    { $lookup: { from: 'orderitems', localField: 'orderItems', foreignField: '_id', as: 'items' } },
-    { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } }, // Mở mảng items ra để tính toán
-
-    // 3. MỚI: Nhóm lại theo Order và tính tổng
-    {
-      $group: {
-        _id: '$_id', // Nhóm lại theo ID của Order
-        orderDate: { $first: '$orderDate' },
-        orderStatus: { $first: '$orderStatus' },
-        payment: { $first: '$payment' }, // Giữ lại thông tin payment
-        addressDelivery: { $first: '$addressDelivery' }, // Giữ lại thông tin address
-        // Tính tổng tiền bằng cách nhân số lượng với giá của từng item rồi cộng dồn
-        total: {
-          $sum: {
-            $multiply: ['$items.price', '$items.quantity']
-          }
-        }
-      }
-    }
   ];
   
-  // 4. Xây dựng đối tượng $match động (giữ nguyên)
+  // 2. Xây dựng đối tượng $match động
   const matchQuery: FilterQuery<any> = {};
 
   if (search) {
@@ -90,7 +69,7 @@ export class OrderService {
     matchQuery.orderStatus = orderStatus;
   }
   if (paymentMethod) {
-    matchQuery['payment.paymentMethod'] = paymentMethod;
+    matchQuery.paymentMethod = paymentMethod; // Lấy từ order.paymentMethod
   }
   if (startDate || endDate) {
     matchQuery.orderDate = {};
@@ -106,15 +85,19 @@ export class OrderService {
     }
   }
   
-  // Pipeline để lấy dữ liệu (áp dụng $match sau khi đã group)
+  // Pipeline để lấy dữ liệu
   const dataPipeline: PipelineStage[] = [
     ...initialPipeline,
     { $match: matchQuery },
     { $sort: { orderDate: -1 } },
   ];
 
-  // Pipeline để đếm (áp dụng $match sau khi đã group)
-  const countPipeline: PipelineStage[] = [ ...initialPipeline, { $match: matchQuery }, { $count: 'total' } ];
+  // Pipeline để đếm
+  const countPipeline: PipelineStage[] = [ 
+    ...initialPipeline, 
+    { $match: matchQuery }, 
+    { $count: 'total' } 
+  ];
   
   // Pipeline chính bao gồm phân trang và định hình lại output
   const mainPipeline: PipelineStage[] = [
@@ -122,19 +105,18 @@ export class OrderService {
     { $skip: (page - 1) * limit },
     { $limit: limit },
     {
-      // 5. SỬA LẠI: $project để định hình output cuối cùng
       $project: { 
-        _id: 0, // Bỏ _id
+        _id: 0,
         id: '$_id',
-        orderDate: { // Định dạng lại ngày tháng cho đẹp
-            $dateToString: {
-              format: "%d/%m/%Y - %H:%M",
-              date: "$orderDate",
-              timezone: "Asia/Ho_Chi_Minh"
-            }
+        orderDate: {
+          $dateToString: {
+            format: "%d/%m/%Y - %H:%M",
+            date: "$orderDate",
+            timezone: "Asia/Ho_Chi_Minh"
+          }
         },
         orderStatus: 1,
-        total: '$total', // Lấy total đã được tính toán ở bước $group
+        total: '$payment.amount', // Lấy từ payment.amount
         
         // Tạo lại cấu trúc object cho addressDelivery
         addressDelivery: {
@@ -144,8 +126,8 @@ export class OrderService {
 
         // Tạo lại cấu trúc object cho payment
         payment: {
-          paymentMethod: '$payment.paymentMethod',
-          status: '$payment.status'
+          paymentMethod: '$paymentMethod', // Lấy từ order.paymentMethod
+          status: '$isPaid' // Lấy từ order.isPaid
         }
       },
     },
@@ -161,7 +143,7 @@ export class OrderService {
   return { data, total, page, totalPages: Math.ceil(total / limit) };
 }
 
- async findOne(id: string): Promise<any> {
+async findOne(id: string): Promise<any> {
     const pipeline: PipelineStage[] = [
       // === GIAI ĐOẠN 1: TÌM ĐƠN HÀNG CHÍNH ===
       {
@@ -171,9 +153,8 @@ export class OrderService {
       // === GIAI ĐOẠN 2: KẾT NỐI (LOOKUP) VỚI CÁC COLLECTION KHÁC ===
       { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'user' } },
       { $lookup: { from: 'addressdeliveries', localField: 'addressDelivery', foreignField: '_id', as: 'addressDelivery' } },
-      { $lookup: { from: 'payments', localField: '_id', foreignField: 'order', as: 'payment' } },
+      { $lookup: { from: 'payments', localField: 'payment', foreignField: '_id', as: 'payment' } },
       { $lookup: { from: 'coupons', localField: 'coupon', foreignField: '_id', as: 'coupon' } },
-      { $lookup: { from: 'coinusages', localField: '_id', foreignField: 'order', as: 'coinUsage' } },
       { $lookup: { from: 'orderitems', localField: 'orderItems', foreignField: '_id', as: 'orderItems' } },
       
       // "Mở" các kết quả lookup (là mảng) thành object để dễ truy cập
@@ -181,41 +162,40 @@ export class OrderService {
       { $unwind: { path: '$addressDelivery', preserveNullAndEmptyArrays: true } },
       { $unwind: { path: '$payment', preserveNullAndEmptyArrays: true } },
       { $unwind: { path: '$coupon', preserveNullAndEmptyArrays: true } },
-      { $unwind: { path: '$coinUsage', preserveNullAndEmptyArrays: true } },
 
       // === GIAI ĐOẠN 3: XỬ LÝ MẢNG orderItems ===
       {
         $addFields: {
-          // Tính tổng tiền cho từng item trong mảng
           orderItems: {
             $map: {
               input: '$orderItems',
               as: 'item',
               in: {
-                // Giữ lại các trường cũ của item và thêm trường `itemTotal`
                 _id: '$$item._id',
+                productId: '$$item.product',
                 quantity: '$$item.quantity',
                 price: '$$item.price',
                 size: '$$item.size',
-                product: '$$item.product',
                 itemTotal: { $multiply: ['$$item.price', '$$item.quantity'] },
               },
             },
           },
         },
       },
-      // Lookup lần nữa để lấy productName cho từng item
+
+      // Lookup product để lấy productName và image
       { $unwind: { path: '$orderItems', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'products',
-          localField: 'orderItems.product',
+          localField: 'orderItems.productId',
           foreignField: '_id',
           as: 'orderItems.productData',
         },
       },
       { $unwind: { path: '$orderItems.productData', preserveNullAndEmptyArrays: true } },
-      // Nhóm lại thành một document order duy nhất
+
+      // Group lại để gom các orderItems thành mảng
       {
         $group: {
           _id: '$_id',
@@ -225,78 +205,42 @@ export class OrderService {
           addressDelivery: { $first: '$addressDelivery' },
           payment: { $first: '$payment' },
           coupon: { $first: '$coupon' },
-          coinUsage: { $first: '$coinUsage' },
-          // Gom các item đã xử lý vào lại một mảng
-          items: {
+          paymentMethod: { $first: '$paymentMethod' },
+          isPaid: { $first: '$isPaid' },
+          paidAt: { $first: '$paidAt' },
+          vnpTransactionNo: { $first: '$vnpTransactionNo' },
+          calculatedSubtotal: { $first: '$calculatedSubtotal' },
+          calculatedDiscountValue: { $first: '$calculatedDiscountValue' },
+          calculatedCoinsApplied: { $first: '$calculatedCoinsApplied' },
+          calculatedCoinValue: { $first: '$calculatedCoinValue' },
+          calculatedTotalPrice: { $first: '$calculatedTotalPrice' },
+          cancellationReason: { $first: '$cancellationReason' },
+          orderItems: {
             $push: {
-              productId: '$orderItems.product',
+              productId: '$orderItems.productId',
               productName: '$orderItems.productData.productName',
               quantity: '$orderItems.quantity',
               price: '$orderItems.price',
               size: '$orderItems.size',
+              image: { $arrayElemAt: ['$orderItems.productData.images', 0] }, // Lấy ảnh đầu tiên
               itemTotal: '$orderItems.itemTotal',
             },
           },
         },
       },
 
-      // === GIAI ĐOẠN 4: TÍNH TOÁN TỔNG TIỀN CUỐI CÙNG (ĐÃ SỬA THEO CÔNG THỨC MỚI) ===
-      {
-        $addFields: {
-          // Tính tổng tiền hàng (chưa giảm giá)
-          subTotal: { $sum: '$items.itemTotal' },
-          
-          // Lấy giá trị % giảm giá của coupon (ví dụ: 25), nếu không có thì là 0
-          discountPercentage: { $ifNull: ['$coupon.discountValue', 0] },
-          
-          // Lấy giá trị coin đã sử dụng, mặc định là 0
-          coinsUsed: { $ifNull: ['$coinUsage.coinsUsed', 0] },
-        },
-      },
-      {
-        $addFields: {
-          // 1. Chuyển đổi % thành số thập phân (25 -> 0.25)
-          discountRate: { 
-            $divide: ['$discountPercentage', 100] 
-          },
-          // 2. Tính giá trị tiền được giảm từ coin (1 coin = 1000 VND)
-          coinsUsedValue: { 
-            $multiply: ['$coinsUsed', 1000] 
-          },
-        },
-      },
-      {
-        $addFields: {
-          // 3. Tính số tiền được giảm từ coupon = subTotal * discountRate
-          discountAmount: { 
-            $multiply: ['$subTotal', '$discountRate'] 
-          },
-        },
-      },
-      {
-        $addFields: {
-          // 4. Thành tiền = Tổng tiền hàng - Tiền giảm từ coupon - Tiền giảm từ coin
-          finalTotal: { 
-            $subtract: [
-              '$subTotal',
-              { $add: ['$discountAmount', '$coinsUsedValue'] },
-            ],
-          },
-        },
-      },
-
-      // === GIAI ĐOẠN 5: ĐỊNH HÌNH LẠI OUTPUT JSON CUỐI CÙNG ===
+      // === GIAI ĐOẠN 4: ĐỊNH HÌNH LẠI OUTPUT JSON CUỐI CÙNG ===
       {
         $project: {
-          _id: 0, // Bỏ trường _id
+          _id: 0,
           id: '$_id',
-         orderDate: {
-            $dateToString: {
-              format: "%d/%m/%Y - %H:%M",
-              date: "$orderDate",
-              timezone: "Asia/Ho_Chi_Minh"
-            }
-          },
+          orderDate: {
+            $dateToString: {
+              format: "%d/%m/%Y - %H:%M",
+              date: "$orderDate",
+              timezone: "Asia/Ho_Chi_Minh"
+            }
+          },
           orderStatus: '$orderStatus',
           customer: {
             fullName: { $concat: ['$user.firstName', ' ', '$user.lastName'] },
@@ -307,27 +251,35 @@ export class OrderService {
             phoneNumber: '$addressDelivery.phoneNumber',
             address: '$addressDelivery.address',
           },
-          items: '$items',
+          items: '$orderItems',
           pricing: {
-            subTotal: '$subTotal',
-            discountPercentage: '$discountPercentage',
-            discountAmount: '$discountAmount',
+            subTotal: '$calculatedSubtotal',
+            discountValue: '$calculatedDiscountValue',
+            coinsApplied: '$calculatedCoinsApplied',
+            coinValue: '$calculatedCoinValue',
+            totalPrice: '$calculatedTotalPrice',
             couponCode: '$coupon.code',
-            coinsUsed: '$coinUsage.coinsUsed',
-            coinsUsedValue: '$coinsUsedValue',
-            finalTotal: '$finalTotal',
-            paymentAmount: '$payment.amount', // Amount từ bảng Payment
           },
           paymentInfo: {
-            method: '$payment.paymentMethod',
-            date: {
-              $dateToString: {
-                format: "%d/%m/%Y - %H:%M",
-                date: "$payment.paymentDate",
-                timezone: "Asia/Ho_Chi_Minh"
-              }
-            },
+            method: '$paymentMethod',
+            amount: '$payment.amount',
+            isPaid: '$isPaid',
+            paidAt: {
+              $cond: {
+                if: '$paidAt',
+                then: {
+                  $dateToString: {
+                    format: "%d/%m/%Y - %H:%M",
+                    date: "$paidAt",
+                    timezone: "Asia/Ho_Chi_Minh"
+                  }
+                },
+                else: null
+              }
+            },
+            vnpTransactionNo: '$vnpTransactionNo',
           },
+          cancellationReason: '$cancellationReason',
         },
       },
     ];
@@ -346,9 +298,8 @@ export class OrderService {
       orderDetail.nextStatuses = nextStatuses; 
     }
 
-    return orderDetail
+    return orderDetail;
   }
-
 
 
  async updateStatus(id: string, payload: UpdateOrderStatusDto): Promise<Order> {
