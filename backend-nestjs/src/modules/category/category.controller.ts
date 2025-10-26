@@ -24,9 +24,11 @@ export class CategoryController {
   }
   //thu
   @Get("all")
-  async getAlls(@Query('page') page: string = '1', @Query('limit') limit: string = '10') {
-    const categories = await this.categoryService.findAlls(Number(page), Number(limit));
-    return categories;
+  async getAlls() {
+    const categories = await this.categoryService.findAll1();
+    console.log("ddddd"+ categories)
+    return { categories };
+
   }
   @Get()
   findAll() {
