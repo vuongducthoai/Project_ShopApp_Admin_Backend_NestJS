@@ -13,18 +13,18 @@ export class CategoryService {
 
     @InjectModel(Category.name)
     private readonly categoryModel: Model<CategoryDocument>,
-  ) {}
+  ) { }
 
   // ✅ Lấy tất cả category (không phân trang)
-// ✅ Lấy tất cả category (chỉ trả về id và categoryName)
-    async findAll1() {
+  // ✅ Lấy tất cả category (chỉ trả về id và categoryName)
+  async findAll1() {
     return this.categoryModel
-        .find({}, 'categoryName',)  // chỉ chọn trường categoryName
-        .sort({ createdAt: -1 })   // sắp xếp theo thời gian tạo (mới nhất trước)               // bỏ metadata Mongoose, trả object JS thường
-        .exec();                   // thực thi truy vấn
-    }
-    
-    async findAlls(page: number = 1, limit: number = 10) {
+      .find({}, 'categoryName',)  // chỉ chọn trường categoryName
+      .sort({ createdAt: -1 })   // sắp xếp theo thời gian tạo (mới nhất trước)               // bỏ metadata Mongoose, trả object JS thường
+      .exec();                   // thực thi truy vấn
+  }
+
+  async findAlls(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
     const totalCategories = await this.categoryModel.countDocuments(); // Đếm tổng số danh mục
@@ -40,9 +40,21 @@ export class CategoryService {
 
 
 
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const newCategory = new this.categoryModel(createCategoryDto);
-    return await newCategory.save();
+  async create(createCategoryDto: CreateCategoryDto): Promise<Boolean> {
+    const check = await this.categoryModel.findOne({
+      categoryName: {
+        // Thêm ^ ở đầu và $ ở cuối
+        $regex: `^${createCategoryDto.categoryName}$`,
+        $options: 'i'
+      }
+    });
+
+    if (!check) {
+      const newCategory = new this.categoryModel(createCategoryDto);
+      await newCategory.save();
+      return true;
+    }
+    return false;
   }
 
   async findAll(): Promise<Category[]> {

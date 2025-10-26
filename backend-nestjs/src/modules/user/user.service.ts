@@ -96,7 +96,7 @@ export class UserService {
 
   async create(createUserDto: CreateUserDto) : Promise<User>{
     try{
-      console.log("cccccccccc", createUserDto);
+     
       const newUser = new this.userModel(createUserDto);
       
       const coin = new this.coinModel({User: newUser._id,
@@ -114,7 +114,6 @@ export class UserService {
 
   async update(id: string, UpdateUserDto: UpdateUserDto) : Promise<User>{
     const updateUser = await this.userModel.findByIdAndUpdate(id, UpdateUserDto, {new: true});
-
     if(!updateUser){
       throw new NotFoundException(`User with ID "${id}" not found`);
     }
