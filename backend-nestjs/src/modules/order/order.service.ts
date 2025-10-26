@@ -302,7 +302,7 @@ async findOne(id: string): Promise<any> {
   }
 
 
- async updateStatus(id: string, payload: UpdateOrderStatusDto): Promise<Order> {
+async updateStatus(id: string, payload: UpdateOrderStatusDto): Promise<Order> {
     const { status: newStatus, cancellationReason } = payload;
     this.logger.debug(`Received payload for order ${id}: ${JSON.stringify(payload)}`);
 
@@ -323,47 +323,69 @@ async findOne(id: string): Promise<any> {
     }
 
     // --- XỬ LÝ CÁC LOGIC NGHIỆP VỤ (SIDE EFFECTS) ---
-    // (Thực hiện các thay đổi phụ thuộc vào newStatus TRƯỚC khi cập nhật order chính)
 
     // 4. LOGIC KHI ĐƠN HÀNG HOÀN THÀNH (COMPLETED)
     if (newStatus === OrderStatus.COMPLETED) {
       if (payment && payment.paymentMethod === PaymentMethod.COD && !payment.status) {
         await this.paymentModel.findByIdAndUpdate(payment._id, { status: true });
       }
+      
+      // Trừ số lượng sản phẩm từ orderItems
       for (const item of order.orderItems as any[]) {
-        await this.productModel.findByIdAndUpdate(item.product, { $inc: { quantity: -item.quantity } });
+        await this.productModel.findByIdAndUpdate(
+          item.product, 
+          { $inc: { quantity: -item.quantity } }
+        );
         await this.productSizeModel.findOneAndUpdate(
           { product: item.product, size: item.size },
-          { $inc: { quantity: -item.quantity } },
+          { $inc: { quantity: -item.quantity } }
         );
       }
     }
 
     // 5. LOGIC KHI ĐƠN HÀNG BỊ HỦY (CANCELLED)
     if (newStatus === OrderStatus.CANCELLED) {
-      // Hoàn kho
+      // Hoàn kho từ orderItems
       for (const item of order.orderItems as any[]) {
-        await this.productModel.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
+        await this.productModel.findByIdAndUpdate(
+          item.product, 
+          { $inc: { quantity: item.quantity } }
+        );
         await this.productSizeModel.findOneAndUpdate(
           { product: item.product, size: item.size },
-          { $inc: { quantity: item.quantity } },
+          { $inc: { quantity: item.quantity } }
         );
       }
-      // Hoàn coin (luôn thực hiện nếu có)
-      const coinUsage = await this.coinUsageModel.findOne({ order: order._id }).exec();
-      if (coinUsage && coinUsage.coinsUsed > 0) {
+      
+      // Hoàn coin nếu user đã sử dụng coin khi đặt hàng
+      if (order.calculatedCoinsApplied > 0) {
         await this.coinModel.findOneAndUpdate(
           { User: order.user },
-          { $inc: { value: coinUsage.coinsUsed } }
+          { $inc: { value: order.calculatedCoinsApplied } }
         );
-        this.logger.log(`Refunded ${coinUsage.coinsUsed} coins to user ${order.user}`);
+        this.logger.log(`Refunded ${order.calculatedCoinsApplied} coins to user ${order.user} (from order usage)`);
       }
-      // Cập nhật payment (nếu đã thanh toán)
-      if (payment && payment.status === true) {
+      
+      // Hoàn tiền thành coin nếu đã thanh toán
+      if (order.isPaid && payment) {
+        // Chuyển đổi số tiền đã thanh toán thành coin (1000đ = 1 coin)
+        const refundCoins = Math.floor(payment.amount / 1000);
+        
+        if (refundCoins > 0) {
+          await this.coinModel.findOneAndUpdate(
+            { User: order.user },
+            { $inc: { value: refundCoins } }
+          );
+          this.logger.log(`Refunded ${payment.amount} VND as ${refundCoins} coins to user ${order.user}`);
+        }
+        
+        // Cập nhật trạng thái payment
         await this.paymentModel.findByIdAndUpdate(payment._id, { status: false });
+        
+        // Log để xử lý hoàn tiền qua cổng thanh toán (nếu cần)
         if (payment.paymentMethod !== PaymentMethod.COD) {
-          this.logger.log(`[REFUND] Initiating refund for non-COD payment ID: ${payment._id}`);
-          // TODO: Gọi API hoàn tiền bên thứ ba
+          this.logger.log(`[REFUND] Non-COD payment cancelled - Amount ${payment.amount} converted to ${refundCoins} coins for user ${order.user}`);
+          // TODO: Có thể gọi API hoàn tiền bên thứ ba nếu cần
         }
       }
     }
@@ -371,7 +393,7 @@ async findOne(id: string): Promise<any> {
     // --- 6. CẬP NHẬT TRẠNG THÁI ORDER VÀ LÝ DO HỦY ---
     const updatePayload: any = { orderStatus: newStatus };
     if (newStatus === OrderStatus.CANCELLED && cancellationReason) {
-      updatePayload.cancellationReason = cancellationReason; // Gộp lý do vào payload
+      updatePayload.cancellationReason = cancellationReason;
     }
 
     this.logger.debug(`Updating order ${id} with: ${JSON.stringify(updatePayload)}`);
@@ -379,11 +401,10 @@ async findOne(id: string): Promise<any> {
     const updatedOrder = await this.orderModel.findByIdAndUpdate(
       id,
       updatePayload,
-      { new: true } // Trả về document sau khi cập nhật
+      { new: true }
     ).exec();
 
     if (!updatedOrder) {
-      // Lỗi này không nên xảy ra nếu findById ban đầu thành công
       throw new Error(`Failed to update order status for ID "${id}"`);
     }
 
